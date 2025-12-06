@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navegador com Status em Tempo Real</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1a1a2e;
+            color: #f1f1f1;
+            line-height: 1.6;
+            padding: 10px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #2d4059;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #00b4d8;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .subtitle {
+            color: #8d99ae;
+            font-size: 1.1rem;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        @media (min-width: 992px) {
+            .app-container {
+                flex-direction: row;
+            }
+            
+            .browser-section, .status-section {
+                flex: 1;
+            }
+        }
+        
+        .panel {
+            background-color: #162447;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            height: 100%;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2d4059;
+            color: #00b4d8;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .url-input-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        #urlInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 5px 0 0 5px;
+            background-color: #1f4068;
+            color: #f1f1f1;
+            font-size: 1rem;
+        }
+        
+        #loadBtn {
+            background-color: #00b4d8;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        #loadBtn:hover {
+            background-color: #0096c7;
+        }
+        
+        .browser-window {
+            border: 1px solid #2d4059;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            height: 500px;
+        }
+        
+        .browser-header {
+            background-color: #1f4068;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .browser-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .browser-controls button {
+            background: none;
+            border: none;
+            color: #8d99ae;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.3s;
+        }
+        
+        .browser-controls button:hover {
+            color: #00b4d8;
+        }
+        
+        .browser-frame {
+            width: 100%;
+            height: calc(100% - 48px);
+            border: none;
+            background-color: white;
+        }
+        
+        .status-list {
+            list-style-type: none;
+            max-height: 450px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .status-item {
+            background-color: #1f4068;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #00b4d8;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .status-title {
+            font-weight: bold;
+            color: #00b4d8;
+        }
+        
+        .status-time {
+            color: #8d99ae;
+            font-size: 0.85rem;
+        }
+        
+        .status-content {
+            color: #e6e6e6;
+            font-size: 0.95rem;
+        }
+        
+        .status-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .type-request { background-color: #4361ee; color: white; }
+        .type-response { background-color: #4cc9f0; color: #162447; }
+        .type-security { background-color: #f72585; color: white; }
+        .type-loading { background-color: #7209b7; color: white; }
+        .type-resource { background-color: #38b000; color: white; }
+        
+        .clear-btn {
+            background-color: #2d4059;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px auto 0;
+            transition: background-color 0.3s;
+        }
+        
+        .clear-btn:hover {
+            background-color: #f72585;
+        }
+        
+        .clear-btn i {
+            margin-right: 8px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #2d4059;
+            color: #8d99ae;
+            font-size: 0.9rem;
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #00b4d8;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .demo-sites {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .demo-btn {
+            background-color: #1f4068;
+            border: none;
+            color: #8d99ae;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .demo-btn:hover {
+            background-color: #00b4d8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-globe"></i> Navegador com Monitor de Status</h1>
+            <p class="subtitle">Acesse sites e visualize em tempo real o que acontece nos bastidores</p>
+        </header>
+        
+        <div class="app-container">
+            <section class="browser-section">
+                <div class="panel">
+                    <h2 class="section-title"><i class="fas fa-compass"></i> Navegador</h2>
+                    
+                    <div class="url-input-container">
+                        <input type="url" id="urlInput" placeholder="Digite uma URL (ex: https://exemplo.com)" value="https://example.com">
+                        <button id="loadBtn">Carregar</button>
+                    </div>
+                    
+                    <div class="demo-sites">
+                        <p>Sites de exemplo:</p>
+                        <button class="demo-btn" data-url="https://example.com">Example.com</button>
+                        <button class="demo-btn" data-url="https://httpbin.org">HTTPBin</button>
+                        <button class="demo-btn" data-url="https://wikipedia.org">Wikipedia</button>
+                        <button class="demo-btn" data-url="https://news.google.com">Google Notícias</button>
+                    </div>
+                    
+                    <div class="browser-window">
+                        <div class="browser-header">
+                            <div class="browser-controls">
+                                <button id="backBtn" title="Voltar"><i class="fas fa-arrow-left"></i></button>
+                                <button id="forwardBtn" title="Avançar"><i class="fas fa-arrow-right"></i></button>
+                                <button id="refreshBtn" title="Recarregar"><i class="fas fa-redo"></i></button>
+                            </div>
+                            <div id="currentUrl">https://example.com</div>
+                        </div>
+                        <iframe id="browserFrame" class="browser-frame" src="https://example.com"></iframe>
+                    </div>
+                    
+                    <div class="loader" id="loader">
+                        <div class="spinner"></div>
+                        <p>Carregando página...</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="status-section">
+                <div class="panel">
+                    <h2 class="section-title"><i class="fas fa-chart-bar"></i> Status em Tempo Real</h2>
+                    <p>Monitorando requisições, respostas e eventos do site carregado:</p>
+                    
+                    <ul class="status-list" id="statusList">
+                        <!-- Itens de status serão adicionados dinamicamente aqui -->
+                    </ul>
+                    
+                    <button class="clear-btn" id="clearStatusBtn"><i class="fas fa-trash-alt"></i> Limpar Status</button>
+                </div>
+            </section>
+        </div>
+        
+        <div class="footer">
+            <p>Este é um navegador simulado para demonstração. Algumas funcionalidades podem ser limitadas por políticas de segurança dos sites.</p>
+            <p>Desenvolvido para visualizar o que acontece durante o carregamento de páginas web.</p>
+        </div>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const urlInput = document.getElementById('urlInput');
+        const loadBtn = document.getElementById('loadBtn');
+        const browserFrame = document.getElementById('browserFrame');
+        const currentUrl = document.getElementById('currentUrl');
+        const backBtn = document.getElementById('backBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const statusList = document.getElementById('statusList');
+        const clearStatusBtn = document.getElementById('clearStatusBtn');
+        const loader = document.getElementById('loader');
+        const demoBtns = document.querySelectorAll('.demo-btn');
+        
+        // Histórico de navegação simulado
+        let history = ['https://example.com'];
+        let historyIndex = 0;
+        
+        // Adicionar um item ao status
+        function addStatusItem(type, title, content) {
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            const statusItem = document.createElement('li');
+            statusItem.className = 'status-item';
+            
+            let typeClass = 'type-request';
+            let typeText = 'Requisição';
+            
+            switch(type) {
+                case 'response': 
+                    typeClass = 'type-response';
+                    typeText = 'Resposta';
+                    break;
+                case 'security': 
+                    typeClass = 'type-security';
+                    typeText = 'Segurança';
+                    break;
+                case 'loading': 
+                    typeClass = 'type-loading';
+                    typeText = 'Carregamento';
+                    break;
+                case 'resource': 
+                    typeClass = 'type-resource';
+                    typeText = 'Recurso';
+                    break;
+            }
+            
+            statusItem.innerHTML = `
+                <div class="status-header">
+                    <div class="status-title">
+                        <span class="status-type ${typeClass}">${typeText}</span> ${title}
+                    </div>
+                    <div class="status-time">${timeString}</div>
+                </div>
+                <div class="status-content">${content}</div>
+            `;
+            
+            statusList.prepend(statusItem);
+            
+            // Limitar a lista a 50 itens
+            if (statusList.children.length > 50) {
+                statusList.removeChild(statusList.lastChild);
+            }
+        }
+        
+        // Função para carregar URL no iframe
+        function loadUrl(url) {
+            // Validação básica de URL
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            
+            // Atualizar input e URL atual
+            urlInput.value = url;
+            currentUrl.textContent = url;
+            
+            // Mostrar loader
+            loader.style.display = 'block';
+            browserFrame.style.opacity = '0.5';
+            
+            // Adicionar ao histórico se for uma nova navegação
+            if (url !== history[historyIndex]) {
+                history = history.slice(0, historyIndex + 1);
+                history.push(url);
+                historyIndex++;
+            }
+            
+            // Simular eventos de carregamento
+            addStatusItem('loading', 'Iniciando carregamento da página', `Carregando URL: ${url}`);
+            
+            // Simular requisição DNS
+            setTimeout(() => {
+                addStatusItem('request', 'Resolução DNS', `Resolvendo nome de domínio para ${new URL(url).hostname}`);
+            }, 300);
+            
+            // Simular estabelecimento de conexão
+            setTimeout(() => {
+                addStatusItem('request', 'Estabelecendo conexão', `Conectando ao servidor ${new URL(url).hostname} na porta 443 (HTTPS)`);
+            }, 800);
+            
+            // Simular handshake TLS
+            setTimeout(() => {
+                addStatusItem('security', 'Handshake TLS', `Negociando conexão segura com o servidor usando TLS 1.3`);
+            }, 1200);
+            
+            // Simular requisição HTTP
+            setTimeout(() => {
+                addStatusItem('request', 'Enviando requisição HTTP', `GET ${new URL(url).pathname || '/'} HTTP/2`);
+            }, 1800);
+            
+            // Simular resposta do servidor
+            setTimeout(() => {
+                addStatusItem('response', 'Resposta do servidor', `Status 200 OK, tamanho aproximado: 15KB`);
+            }, 2400);
+            
+            // Simular carregamento de recursos
+            setTimeout(() => {
+                addStatusItem('resource', 'Carregando recursos da página', `Baixando CSS, JavaScript e imagens...`);
+            }, 3000);
+            
+            // Carregar a página no iframe
+            browserFrame.src = url;
+            
+            // Ocultar loader após 3.5 segundos (simulação)
+            setTimeout(() => {
+                loader.style.display = 'none';
+                browserFrame.style.opacity = '1';
+                addStatusItem('loading', 'Página carregada com sucesso', `Renderização completa de ${url}`);
+            }, 3500);
+            
+            // Simular alguns eventos após o carregamento
+            setTimeout(() => {
+                addStatusItem('resource', 'Recurso carregado', 'script.js carregado e executado');
+                addStatusItem('resource', 'Recurso carregado', 'styles.css aplicado');
+                addStatusItem('response', 'Requisição AJAX', 'Dados adicionais carregados via fetch()');
+            }, 4000);
+        }
+        
+        // Event Listeners
+        loadBtn.addEventListener('click', () => {
+            const url = urlInput.value.trim();
+            if (url) {
+                loadUrl(url);
+            }
+        });
+        
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const url = urlInput.value.trim();
+                if (url) {
+                    loadUrl(url);
+                }
+            }
+        });
+        
+        backBtn.addEventListener('click', () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                loadUrl(history[historyIndex]);
+            }
+        });
+        
+        forwardBtn.addEventListener('click', () => {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                loadUrl(history[historyIndex]);
+            }
+        });
+        
+        refreshBtn.addEventListener('click', () => {
+            const current = history[historyIndex];
+            addStatusItem('loading', 'Recarregando página', `Atualizando ${current}`);
+            loadUrl(current);
+        });
+        
+        clearStatusBtn.addEventListener('click', () => {
+            statusList.innerHTML = '';
+            addStatusItem('loading', 'Log de status limpo', 'Todos os itens anteriores foram removidos');
+        });
+        
+        // Adicionar eventos para botões de demonstração
+        demoBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const url = btn.getAttribute('data-url');
+                loadUrl(url);
+            });
+        });
+        
+        // Simular eventos do iframe (não é possível acessar realmente devido a políticas de segurança)
+        browserFrame.addEventListener('load', () => {
+            // Em um ambiente real, aqui seria possível monitorar eventos reais do iframe
+            // Mas devido à política de mesma origem (same-origin policy), isso é limitado
+        });
+        
+        // Inicializar com um status
+        addStatusItem('loading', 'Navegador inicializado', 'Pronto para carregar sites. Digite uma URL acima ou use um dos exemplos.');
+        
+        // Adicionar alguns status iniciais para demonstração
+        setTimeout(() => {
+            addStatusItem('security', 'Conexão segura estabelecida', 'Todas as conexões usarão HTTPS por padrão');
+            addStatusItem('response', 'Cache verificado', 'Verificando por versões atualizadas dos recursos');
+        }, 1000);
+    </script>
+</body>
+</html>
